@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一拍即测 · 无障碍现场督导工具</title>
+<style>
+/* ============================================================
+   一拍即测 —— 视觉令牌（深浅双主题，仅结构样式，无任何脚本）
+   ============================================================ */
+:root {
+  --bg: #f3f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef2f5;
+  --text: #14202b;
+  --text-2: #46586a;
+  --line: #d3dce3;
+
+  --accent: #087065;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(8, 112, 101, 0.12);
+
+  --good: #198045;   --good-soft: rgba(25, 128, 69, 0.12);
+  --bad: #d12f2f;    --bad-soft: rgba(209, 47, 47, 0.10);
+  --warn: #946400;   --warn-soft: rgba(148, 100, 0, 0.14);
+
+  --roadway: #424b54; --roadway-line: #c9d2d9;
+  --sidewalk: #e7edf1; --building: #dbe3e9;
+
+  --r-card: 16px; --r-inner: 10px; --r-btn: 8px; --r-sm: 7px;
+}
+:root[data-theme="dark"] {
+  --bg: #10151a; --surface: #181f26; --surface-2: #202a33;
+  --text: #e7edf2; --text-2: #b6c2cd; --line: #2f3a45;
+  --accent: #2dd4bf; --on-accent: #06231f;
+  --accent-soft: rgba(45, 212, 191, 0.16);
+  --good: #35d07f; --good-soft: rgba(53, 208, 127, 0.16);
+  --bad: #ff6b6b;  --bad-soft: rgba(255, 107, 107, 0.16);
+  --warn: #f5c451; --warn-soft: rgba(245, 196, 81, 0.18);
+  --roadway: #232c35; --roadway-line: #71808d;
+  --sidewalk: #1c242d; --building: #222d37;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10151a; --surface: #181f26; --surface-2: #202a33;
+    --text: #e7edf2; --text-2: #b6c2cd; --line: #2f3a45;
+    --accent: #2dd4bf; --on-accent: #06231f;
+    --accent-soft: rgba(45, 212, 191, 0.16);
+    --good: #35d07f; --good-soft: rgba(53, 208, 127, 0.16);
+    --bad: #ff6b6b;  --bad-soft: rgba(255, 107, 107, 0.16);
+    --warn: #f5c451; --warn-soft: rgba(245, 196, 81, 0.18);
+    --roadway: #232c35; --roadway-line: #71808d;
+    --sidewalk: #1c242d; --building: #222d37;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Microsoft YaHei", sans-serif;
+  font-size: 14px; line-height: 1.6;
+  color: var(--text); background: var(--bg);
+}
+h1, h2, h3, p, ul, dl, dd { margin: 0; }
+ul { padding: 0; list-style: none; }
+button, input, select { font: inherit; color: inherit; }
+
+/* ---------- a11y 基础 ---------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.skip-link {
+  position: fixed; top: 10px; left: 10px; z-index: 100;
+  padding: 9px 16px; border-radius: var(--r-btn);
+  border: 1px solid var(--accent); background: var(--surface);
+  color: var(--accent); font-weight: 600; text-decoration: none;
+  transform: translateY(-220%); transition: transform 0.18s ease;
+}
+.skip-link:focus { transform: translateY(0); }
+
+/* ---------- header / tabs ---------- */
+.app-header {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.app-header__inner {
+  max-width: 1280px; margin: 0 auto; padding: 12px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 10px;
+  font-size: 17px; font-weight: 700; color: var(--text); text-decoration: none; }
+.brand__mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9px;
+  background: var(--accent); color: var(--on-accent); font-size: 15px;
+}
+.header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tablist {
+  display: inline-flex; gap: 2px; padding: 3px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-inner);
+}
+.tab {
+  appearance: none; border: 1px solid transparent; background: transparent;
+  border-radius: var(--r-sm); padding: 6px 16px; font-size: 14px;
+  color: var(--text-2); cursor: pointer; white-space: nowrap;
+}
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] {
+  background: var(--surface); border-color: var(--line);
+  color: var(--accent); font-weight: 600;
+}
+
+/* ---------- 通用组件 ---------- */
+.btn {
+  appearance: none; display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 8px 14px; border: 1px solid var(--line);
+  border-radius: var(--r-btn); background: var(--surface-2);
+  color: var(--text); font-size: 14px; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--line); color: var(--text); }
+.btn--sm { padding: 5px 11px; border-radius: var(--r-sm); font-size: 13px; }
+.btn--primary { background: var(--accent); border-color: var(--accent);
+  color: var(--on-accent); font-weight: 600; }
+.btn--primary:hover { color: var(--on-accent); opacity: 0.9; }
+.btn--danger:hover { border-color: var(--bad); color: var(--bad); }
+
+.input, .select {
+  height: 34px; padding: 0 10px; border: 1px solid var(--line);
+  border-radius: var(--r-btn); background: var(--surface);
+  color: var(--text); font-size: 14px; min-width: 0;
+}
+.input::placeholder { color: var(--text-2); }
+.input--inline { width: 96px; height: 30px; }
+.select--sm { height: 34px; width: 74px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-card); padding: 16px;
+}
+.card__title {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px; font-size: 14px; font-weight: 700;
+}
+.card__num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 21px; height: 21px; border-radius: 50%; flex: none;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 12px; font-weight: 700;
+}
+.card__counter {
+  margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-2);
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  appearance: none; padding: 4px 12px; border: 1px solid var(--line);
+  border-radius: var(--r-btn); background: var(--surface-2);
+  color: var(--text-2); font-size: 13px; line-height: 1.5;
+  cursor: pointer; white-space: nowrap;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip[aria-pressed="true"] {
+  background: var(--accent-soft); border-color: transparent;
+  color: var(--accent); font-weight: 600;
+}
+
+.tip {
+  margin-top: 10px; padding: 8px 12px; border: 1px solid var(--line);
+  border-radius: var(--r-inner); background: var(--surface-2);
+  color: var(--text-2); font-size: 13px;
+}
+.tip strong { color: var(--text); font-weight: 600; }
+
+.status-line {
+  margin-top: 10px; font-size: 13px; color: var(--text-2);
+  display: flex; align-items: center; gap: 6px;
+}
+.status-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex: none;
+  background: var(--text-2);
+}
+.status-dot--ok { background: var(--good); }
+.status-dot--bad { background: var(--bad); }
+.status-dot--warn { background: var(--warn); }
+
+/* ---------- 主体布局 ---------- */
+.app-main { max-width: 1280px; margin: 0 auto; padding: 20px 20px 112px; }
+.panel[hidden] { display: none; }
+.diag-grid {
+  display: grid; grid-template-columns: 1.35fr 1fr;
+  gap: 16px; align-items: start;
+}
+.diag-side { display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- 板块一：照片区 ---------- */
+.photo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.photo-toolbar .chips { margin-left: auto; }
+.canvas-stage {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  min-height: 360px; border: 1px dashed var(--line);
+  border-radius: var(--r-inner); background: var(--surface-2);
+  overflow: hidden; color: var(--text-2); text-align: center;
+}
+.canvas-stage canvas { display: block; max-width: 100%; height: auto; }
+.canvas-placeholder { padding: 32px 20px; line-height: 1.9; }
+.canvas-placeholder strong { color: var(--text); }
+.guide-row {
+  display: flex; align-items: baseline; gap: 8px; margin-top: 12px;
+  padding: 8px 12px; border-radius: var(--r-inner);
+  background: var(--accent-soft); font-size: 13px;
+}
+.guide-row__label { color: var(--accent); font-weight: 700; flex: none; }
+
+/* 标定卡 */
+.cal-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cal-row .input { width: 108px; }
+
+/* 测量项行（模板结构的静态样式） */
+.measure-list { display: flex; flex-direction: column; gap: 8px; }
+.measure-list:empty::after,
+.empty-hint {
+  content: "请先选择「拍的是什么」";
+  display: block; color: var(--text-2); font-size: 13px; padding: 2px;
+}
+.measure-item {
+  border: 1px solid var(--line); border-radius: var(--r-inner);
+  padding: 10px 12px; background: var(--surface-2);
+}
+.measure-item__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.measure-item__name { font-weight: 600; }
+.measure-item__std { margin-top: 4px; font-size: 12.5px; color: var(--text-2); }
+.measure-item__std code {
+  font-family: ui-monospace, Consolas, monospace;
+  background: var(--accent-soft); color: var(--accent);
+  padding: 0 5px; border-radius: 4px; font-size: 12px;
+}
+.measure-item__foot {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px;
+}
+.measure-item__value { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.verdict {
+  margin-left: auto; padding: 2px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; border: 1px solid var(--line);
+  color: var(--text-2); white-space: nowrap;
+}
+.verdict--good { background: var(--good-soft); color: var(--good); border-color: transparent; }
+.verdict--bad  { background: var(--bad-soft);  color: var(--bad);  border-color: transparent; }
+.verdict--warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+
+.tag {
+  padding: 1px 8px; border-radius: 999px; font-size: 11.5px;
+  border: 1px solid var(--line); color: var(--text-2); white-space: nowrap;
+}
+.tag--high { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.tag--mid  { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.tag--low  { background: var(--good-soft); color: var(--good); border-color: transparent; }
+
+/* 检测清单 */
+.detect-list { display: flex; flex-direction: column; gap: 8px; }
+.detect-item {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); border-radius: var(--r-inner);
+  padding: 8px 12px; background: var(--surface-2);
+}
+.detect-item__name { font-size: 13.5px; }
+.detect-item__result { margin-left: auto; font-size: 12.5px; color: var(--text-2); }
+
+/* ---------- 底部固定横条 ---------- */
+.actionbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: var(--surface); border-top: 1px solid var(--line);
+}
+.actionbar__inner {
+  max-width: 1280px; margin: 0 auto; padding: 10px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.metrics { display: flex; flex-wrap: wrap; gap: 24px; }
+.metric { display: flex; flex-direction: column; line-height: 1.35; }
+.metric__value { font-size: 18px; font-weight: 700; }
+.metric__value--bad { color: var(--bad); }
+.metric__value--good { color: var(--good); }
+.metric__value--warn { color: var(--warn); }
+.metric__label { font-size: 12px; color: var(--text-2); }
+.actionbar__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- 板块二 ---------- */
+.report-wrap { display: flex; flex-direction: column; gap: 16px; }
+.site-map__svg {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--line); border-radius: var(--r-inner);
+  background: var(--surface-2);
+}
+.map-marker { cursor: pointer; }
+.map-marker circle {
+  fill: var(--accent); stroke: var(--surface); stroke-width: 2;
+}
+.map-marker text { fill: var(--on-accent); font-size: 13px; font-weight: 700;
+  text-anchor: middle; dominant-baseline: central; }
+.map-marker[aria-pressed="true"] circle { fill: var(--bad); }
+
+.report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+
+.issue-list { display: flex; flex-direction: column; gap: 8px; }
+.issue-item {
+  appearance: none; width: 100%; text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; border: 1px solid var(--line);
+  border-radius: var(--r-inner); background: var(--surface-2);
+  font-size: 13.5px;
+}
+.issue-item:hover { border-color: var(--accent); }
+.issue-item[aria-pressed="true"] {
+  border-color: var(--accent); background: var(--accent-soft);
+}
+.issue-item__no {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; flex: none;
+  background: var(--accent); color: var(--on-accent);
+  font-size: 12px; font-weight: 700;
+}
+.issue-item__name { flex: 1; min-width: 6em; }
+
+.scheme-dl { display: flex; flex-direction: column; gap: 10px; }
+.scheme-row { display: grid; grid-template-columns: 84px 1fr; gap: 8px; font-size: 13.5px; }
+.scheme-row dt { color: var(--text-2); }
+.scheme-row dd { color: var(--text); }
+.scheme-empty { color: var(--text-2); font-size: 13px; }
+
+/* ---------- 打印：仅 #report ---------- */
+#report { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body > *:not(#report) { display: none !important; }
+  #report { display: block; color: #000; background: #fff; font-size: 12pt; line-height: 1.7; }
+  #report h1 { font-size: 20pt; margin-bottom: 6pt; }
+  #report h2 { font-size: 14pt; margin: 14pt 0 6pt; }
+  #report .report-meta { color: #333; font-size: 10.5pt; margin-bottom: 14pt; }
+  #report .report-placeholder { margin-top: 24pt; padding: 12pt; border: 1px solid #999; }
+}
+
+/* ---------- 窄屏：单列 ---------- */
+@media (max-width: 980px) {
+  .diag-grid, .report-grid { grid-template-columns: 1fr; }
+  .photo-toolbar .chips { margin-left: 0; width: 100%; }
+  .canvas-stage { min-height: 240px; }
+  .app-header__inner { justify-content: center; }
+  .metrics { gap: 16px; }
+}
+@media (max-width: 560px) {
+  .app-main { padding: 14px 12px 160px; }
+  .actionbar__inner { padding: 10px 12px; }
+  .metrics { gap: 12px; width: 100%; justify-content: space-between; }
+  .actionbar__actions { width: 100%; }
+  .actionbar__actions .btn { flex: 1; }
+}
+
+/* ---------- 画布叠加 ---------- */
+.overlay-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; touch-action: none;
+}
+.overlay-canvas--active { pointer-events: auto; }
+
+/* ---------- 测量态 ---------- */
+.measure-item--waiting {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
+}
+
+/* ---------- 场所表单 ---------- */
+.site-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.site-form label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 13px; color: var(--text-2);
+}
+
+/* ---------- 辅助小字 ---------- */
+.note {
+  margin-top: 8px; font-size: 12.5px; color: var(--text-2);
+}
+
+/* ---------- 打印报告表格 ---------- */
+#report .report-meta {
+  color: #333; font-size: 10.5pt; margin-bottom: 14pt;
+}
+#report .report-table {
+  width: 100%; border-collapse: collapse; font-size: 10.5pt; margin: 8pt 0 12pt;
+}
+#report .report-table th,
+#report .report-table td {
+  border: 1px solid #444; padding: 5pt 7pt; text-align: left; vertical-align: top;
+}
+#report .report-table th { background: #f2f2f2; font-weight: 600; }
+#report .report-table .num { text-align: right; white-space: nowrap; }
+#report .signatures {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20pt; margin-top: 18pt;
+}
+#report .signatures p { margin: 2pt 0; color: #333; }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#panelDiagnose">跳到主要内容</a>
+
+<!-- ===================== Header ===================== -->
+<header class="app-header">
+  <div class="app-header__inner">
+    <a class="brand" href="#">
+      <span class="brand__mark" aria-hidden="true">拍</span>
+      <span>一拍即测</span>
+    </a>
+    <div class="header-actions">
+      <div class="tablist" role="tablist" aria-label="功能板块切换">
+        <button class="tab" id="tabDiagnose" role="tab" type="button"
+                aria-selected="true" aria-controls="panelDiagnose">现场拍照诊断</button>
+        <button class="tab" id="tabReport" role="tab" type="button"
+                aria-selected="false" aria-controls="panelReport" tabindex="-1">改造建议书</button>
+      </div>
+      <button class="btn btn--sm" id="themeToggle" type="button"
+              aria-label="在浅色与深色配色之间切换">
+        <span aria-hidden="true">◐</span> 切换配色
+      </button>
+    </div>
+  </div>
+</header>
+
+<h1 class="sr-only">一拍即测 · 无障碍现场督导工具</h1>
+
+<main class="app-main">
+
+  <!-- ========================================================
+       板块一：现场拍照诊断
+       ======================================================== -->
+  <section class="panel" id="panelDiagnose" role="tabpanel"
+           aria-labelledby="tabDiagnose" tabindex="0">
+    <div class="diag-grid">
+
+      <!-- 左侧：照片区 -->
+      <div class="card">
+        <div class="photo-toolbar">
+          <!-- 纯 HTML 的文件选择：accept+capture，手机上直接唤起相机 -->
+          <label class="btn btn--primary">
+            选择照片 / 现场拍照
+            <input type="file" id="photoInput" accept="image/*" capture="environment"
+                   class="sr-only">
+          </label>
+          <div class="chips" role="group" aria-label="切换示例场景">
+            <button class="chip" type="button" data-scene="ramp">示例一 · 入口坡道</button>
+            <button class="chip" type="button" data-scene="steps">示例二 · 门口台阶</button>
+            <button class="chip" type="button" data-scene="tactile">示例三 · 人行道盲道</button>
+          </div>
+        </div>
+
+        <div class="canvas-stage" id="canvasStage">
+          <canvas id="photoCanvas" aria-label="照片画布：用于显示照片并在上面画线"></canvas>
+          <div class="canvas-placeholder" id="canvasPlaceholder">
+            <strong>还没有照片</strong><br>
+            点「选择照片 / 现场拍照」，或选一个示例场景开始
+          </div>
+        </div>
+
+        <div class="guide-row" aria-live="polite">
+          <span class="guide-row__label">现在该做什么</span>
+          <span id="guideText">请先选择或拍摄一张现场照片。</span>
+        </div>
+        <ul class="sr-only" id="lineMirror" aria-live="polite"
+            aria-label="已画测量线及结果列表"></ul>
+      </div>
+
+      <!-- 右侧：四块控制卡 -->
+      <div class="diag-side">
+
+        <!-- 第一块：拍的是什么 -->
+        <div class="card">
+          <h2 class="card__title"><span class="card__num" aria-hidden="true">1</span>拍的是什么</h2>
+          <div class="chips" role="group" aria-label="拍摄类型（10 选 1）">
+            <button class="chip" type="button" data-fac="passage">通道</button>
+            <button class="chip" type="button" data-fac="ramp">坡道</button>
+            <button class="chip" type="button" data-fac="curb">缘石坡道</button>
+            <button class="chip" type="button" data-fac="door">门</button>
+            <button class="chip" type="button" data-fac="steps">台阶</button>
+            <button class="chip" type="button" data-fac="handrail">扶手</button>
+            <button class="chip" type="button" data-fac="tactile">盲道</button>
+            <button class="chip" type="button" data-fac="parking">停车位</button>
+            <button class="chip" type="button" data-fac="desk">低位服务台</button>
+            <button class="chip" type="button" data-fac="sign">标识</button>
+          </div>
+          <p class="tip" id="shootTip">
+            <strong>拍摄要点：</strong>镜头正对被测面、与被测面尽量平行，画面完整覆盖被测对象，
+            并把标定参照物拍进同一画面；避免逆光与强烈反光。
+          </p>
+        </div>
+
+        <!-- 第二块：标定比例 -->
+        <div class="card">
+          <h2 class="card__title"><span class="card__num" aria-hidden="true">2</span>标定比例</h2>
+          <div class="cal-row">
+            <button class="btn btn--sm" type="button" id="btnCalDraw">画标定线</button>
+            <label class="sr-only" for="calLength">标定线对应的实际长度</label>
+            <input class="input" type="number" min="0" step="0.1"
+                   id="calLength" placeholder="实际长度">
+            <label class="sr-only" for="calUnit">长度单位</label>
+            <select class="select select--sm" id="calUnit">
+              <option value="mm" selected>毫米</option>
+              <option value="cm">厘米</option>
+              <option value="m">米</option>
+            </select>
+            <button class="btn btn--sm btn--primary" type="button" id="btnCalConfirm">确认</button>
+          </div>
+          <div class="chips" style="margin-top:10px;" role="group" aria-label="常见参照物，点一下填入长度">
+            <button class="chip" type="button" data-mm="300" data-ref="盲道砖 300mm">盲道砖 300毫米</button>
+            <button class="chip" type="button" data-mm="297" data-ref="A4纸长边 297mm">A4纸长边 297毫米</button>
+            <button class="chip" type="button" data-mm="25" data-ref="一元硬币 25mm">一元硬币 25毫米</button>
+            <button class="chip" type="button" data-mm="85.6" data-ref="信用卡 85.6mm">信用卡 85.6毫米</button>
+            <button class="chip" type="button" data-mm="600" data-ref="标准地砖 600mm">标准地砖 600毫米</button>
+          </div>
+          <p class="status-line" aria-live="polite" id="calStatus">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span>当前标定：尚未标定</span>
+          </p>
+        </div>
+
+        <!-- 第三块：逐项测量 -->
+        <div class="card">
+          <h2 class="card__title">
+            <span class="card__num" aria-hidden="true">3</span>逐项测量
+            <span class="card__counter" id="measureCounter" aria-live="polite">已量 0 / 共 0 项</span>
+          </h2>
+          <ul class="measure-list" id="measureList" aria-live="polite" aria-label="测量项清单">
+            <li class="empty-hint">请先在上方选择「拍的是什么」，这里会列出该类对象需要测量的尺寸。</li>
+          </ul>
+
+          <!-- 测量项行的静态结构样板（后续由脚本克隆，本步不启用） -->
+          <template id="tplMeasureItem">
+            <li class="measure-item">
+              <div class="measure-item__head">
+                <span class="measure-item__name">测量项名称</span>
+                <span class="tag tag--high">高优先级</span>
+              </div>
+              <p class="measure-item__std">
+                国标要求：<span class="measure-item__req">要求描述占位</span>
+                <code class="measure-item__clause">GB 0000 §0.0.0</code>
+              </p>
+              <div class="measure-item__foot">
+                <label class="measure-item__value">
+                  <span class="measure-item__valuelabel">实测</span>
+                  <input class="input input--inline measure-item__input"
+                         type="number" min="0" step="0.1" placeholder="手填或量取">
+                  <span class="measure-item__unit">mm</span>
+                </label>
+                <button class="btn btn--sm btn-draw" type="button">在图上量</button>
+                <button class="btn btn--sm btn--danger btn-clear" type="button">清除</button>
+                <span class="verdict">待测量</span>
+              </div>
+            </li>
+          </template>
+        </div>
+
+        <!-- 第四块：图像辅助检测 -->
+        <div class="card">
+          <h2 class="card__title"><span class="card__num" aria-hidden="true">4</span>图像辅助检测</h2>
+          <ul class="detect-list" id="detectList" aria-live="polite" aria-label="图像自动检测结果（共 4 项）">
+            <li class="detect-item" data-detect="clarity">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span class="detect-item__name">照片清晰度</span>
+              <span class="detect-item__result">待检测</span>
+            </li>
+            <li class="detect-item" data-detect="brightness">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span class="detect-item__name">画面亮度</span>
+              <span class="detect-item__result">待检测</span>
+            </li>
+            <li class="detect-item" data-detect="contrast">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span class="detect-item__name">明暗反差</span>
+              <span class="detect-item__result">待检测</span>
+            </li>
+            <li class="detect-item" data-detect="texture">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span class="detect-item__name">纹理与参照物提示</span>
+              <span class="detect-item__result">待检测</span>
+            </li>
+          </ul>
+          <p class="note">以上为对照片像素的自动分析，仅供拍照质量参考，不改变判定结论。</p>
+          <button class="btn btn--sm" type="button" id="btnRerunDetect"
+                  style="margin-top:10px;">重新检测</button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       板块二：改造建议书
+       ======================================================== -->
+  <section class="panel" id="panelReport" role="tabpanel"
+           aria-labelledby="tabReport" tabindex="0" hidden>
+    <div class="report-wrap">
+
+      <!-- 场所信息 -->
+      <div class="card">
+        <h2 class="card__title">场所信息</h2>
+        <div class="site-form">
+          <label>受检场所
+            <input class="input" id="siteName" type="text" placeholder="如：××便利店" autocomplete="off">
+          </label>
+          <label>地址
+            <input class="input" id="siteAddr" type="text" placeholder="街道门牌" autocomplete="off">
+          </label>
+          <label>督导日期
+            <input class="input" id="siteDate" type="date">
+          </label>
+          <label>督导志愿者
+            <input class="input" id="siteVolunteer" type="text" placeholder="姓名" autocomplete="off">
+          </label>
+          <label>检查范围
+            <input class="input" id="siteScope" type="text" placeholder="如：顾客从人行道进店的完整路径" autocomplete="off">
+          </label>
+        </div>
+        <div class="chips" style="margin-top:10px" role="group" aria-label="常见场所快速填入">
+          <button class="chip" type="button" data-site="街边店铺">街边店铺</button>
+          <button class="chip" type="button" data-site="小区出入口">小区出入口</button>
+          <button class="chip" type="button" data-site="公共厕所">公共厕所</button>
+          <button class="chip" type="button" data-site="路侧停车位">路侧停车位</button>
+        </div>
+      </div>
+
+      <!-- 平面示意图 -->
+      <div class="card">
+        <h2 class="card__title">现场示意</h2>
+        <svg class="site-map__svg" viewBox="0 0 960 420"
+             role="img" aria-label="现场平面示意图：上方车行道、中间人行道、下方建筑，编号圆点为问题点位置">
+          <!-- 上方车行道 -->
+          <rect x="0" y="0" width="960" height="120" fill="var(--roadway)"></rect>
+          <line x1="0" y1="60" x2="960" y2="60" stroke="var(--roadway-line)"
+                stroke-width="3" stroke-dasharray="26 18"></line>
+          <!-- 中间人行道 -->
+          <rect x="0" y="120" width="960" height="140" fill="var(--sidewalk)"></rect>
+          <line x1="0" y1="120" x2="960" y2="120" stroke="var(--line)" stroke-width="2"></line>
+          <line x1="0" y1="260" x2="960" y2="260" stroke="var(--line)" stroke-width="2"></line>
+          <!-- 下方建筑 -->
+          <rect x="0" y="260" width="960" height="160" fill="var(--building)"></rect>
+          <rect x="80"  y="300" width="220" height="120" fill="var(--surface)" stroke="var(--line)" stroke-width="2"></rect>
+          <rect x="370" y="280" width="240" height="140" fill="var(--surface)" stroke="var(--line)" stroke-width="2"></rect>
+          <rect x="680" y="310" width="200" height="110" fill="var(--surface)" stroke="var(--line)" stroke-width="2"></rect>
+
+          <!-- 问题点编号（由脚本按问题清单动态生成） -->
+          <g id="markerLayer"></g>
+        </svg>
+        <p class="note">编号圆点与下方问题清单一一对应；位置为示意，请在建议书中结合文字描述定位。</p>
+      </div>
+
+      <!-- 左右两栏：问题清单 / 方案详情 -->
+      <div class="report-grid">
+        <div class="card">
+          <h2 class="card__title">现场问题清单
+            <span class="card__counter">点一行查看方案</span>
+          </h2>
+          <div class="issue-list" id="issueList" role="list" aria-label="现场问题清单">
+            <p class="scheme-empty">还没有问题项。请先在「现场拍照诊断」完成测量，
+              再点底部「把诊断结果带入改造建议书」。</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card__title">改造方案详情</h2>
+          <dl class="scheme-dl" id="schemeDetail" aria-live="polite" aria-label="选中问题的改造方案">
+            <p class="scheme-empty">选中左侧一个问题后，这里显示改造做法、条款依据与造价估算。</p>
+          </dl>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<!-- ===================== 板块一底部横条 ===================== -->
+<div class="actionbar" id="barDiagnose" role="region" aria-label="诊断汇总与操作">
+  <div class="actionbar__inner">
+    <div class="metrics" role="status" aria-live="polite" aria-label="诊断汇总数字">
+      <div class="metric"><span class="metric__value" id="mMeasured">0</span><span class="metric__label">已测项数</span></div>
+      <div class="metric"><span class="metric__value metric__value--bad" id="mFailed">0</span><span class="metric__label">不合格项数</span></div>
+      <div class="metric"><span class="metric__value metric__value--warn" id="mSchemes">0</span><span class="metric__label">涉及改造方案</span></div>
+      <div class="metric"><span class="metric__value" id="mBudget">¥0</span><span class="metric__label">预估改造预算</span></div>
+    </div>
+    <div class="actionbar__actions">
+      <button class="btn btn--danger" type="button" id="btnClearLines">清除图上所有线</button>
+      <button class="btn btn--primary" type="button" id="btnToReport">把诊断结果带入改造建议书</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 板块二底部横条 ===================== -->
+<div class="actionbar" id="barReport" role="region" aria-label="建议书汇总与操作" hidden>
+  <div class="actionbar__inner">
+    <div class="metrics" role="status" aria-live="polite" aria-label="建议书汇总数字">
+      <div class="metric"><span class="metric__value metric__value--good" id="rCompliance">--</span><span class="metric__label">现场合规率</span></div>
+      <div class="metric"><span class="metric__value" id="rAdopted">0</span><span class="metric__label">已采用改造数</span></div>
+      <div class="metric"><span class="metric__value metric__value--bad" id="rPending">0</span><span class="metric__label">高优先级待整改</span></div>
+      <div class="metric"><span class="metric__value" id="rBudget">¥0</span><span class="metric__label">预估改造预算</span></div>
+    </div>
+    <div class="actionbar__actions">
+      <button class="btn" type="button" id="btnReset">重置</button>
+      <button class="btn btn--primary" type="button" id="btnGenerate">生成《无障碍改造建议书》</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 打印专用大框 ===================== -->
+<div id="report" aria-hidden="true"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ============================================================
+   工具
+   ============================================================ */
+function $(id) { return document.getElementById(id); }
+function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+function round1(v) { return Math.round(v * 10) / 10; }
+function fmtMoney(n) { return '¥' + Math.round(n).toLocaleString('zh-CN'); }
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function lineLen(l) { var dx = l.x2 - l.x1, dy = l.y2 - l.y1; return Math.sqrt(dx * dx + dy * dy); }
+
+/* ============================================================
+   1. 国标条款数据库（条款编号与页码已对照官方出版文本核实）
+   GB1 = GB 55019-2021《建筑与市政工程无障碍通用规范》（强制性，2022-04-01 施行）
+   GB2 = GB 50763-2012《无障碍设计规范》
+   rule 类型：min / max / range / presence；
+   容差：默认阈值 ±5%，毫米长度项另有 10mm 绝对容差下限（可用 tol 覆盖）。
+   坡度项的实测值记为 "1:x" 中的 x（x 越大越缓），判定用 min 规则。
+   ============================================================ */
+var GB1 = 'GB 55019-2021', GB2 = 'GB 50763-2012';
+function cite(std, clause, page) { return { std: std, clause: clause, page: page }; }
+
+var STANDARDS = {
+  passage: {
+    name: '通道',
+    photoTips: '沿通道走向拍摄，画面覆盖通道全宽与典型障碍物；把卷尺或 A4 纸放在地面作标定参照。',
+    items: [
+      { id: 'passage_width', label: '通行净宽', kind: 'length', unit: 'mm',
+        req: '不应小于 1.20m；人员密集场所不应小于 1.80m',
+        rule: { type: 'min', value: 1200 },
+        cite: cite(GB1, '2.2.2', '正文第 2 页'),
+        fix: '调整货架/设施陈列并清理占道物，保证连续通行净宽不小于 1.20m（人员密集场所 1.80m），轮椅与陪护人员可并行；地面保持平整防滑、不设厚地毯；有高差时加设坡道衔接。',
+        cost: { label: '通道清理/拓宽', unit: 'm', price: 200 }, priority: 'high' },
+      { id: 'passage_grate', label: '井盖/箅子孔洞宽', kind: 'length', unit: 'mm',
+        req: '孔洞宽度不应大于 13mm',
+        rule: { type: 'max', value: 13, tol: 1 },
+        cite: cite(GB1, '2.2.4', '正文第 2 页'),
+        fix: '更换为孔洞宽度不大于 13mm 的箅子，孔洞长边垂直于通行方向，避免卡住轮椅前轮与盲杖。',
+        cost: { label: '箅子更换', unit: '处', price: 80 }, priority: 'mid' }
+    ]
+  },
+  ramp: {
+    name: '坡道',
+    photoTips: '从坡道侧面正拍，能同时看到坡高与水平长度；把参照物贴在坡面或旁边墙面上。',
+    items: [
+      { id: 'ramp_slope', label: '纵向坡度', kind: 'slope', unit: '（1:x）',
+        req: '不应陡于 1:12；条件受限且高差≤150mm 时不应陡于 1:10',
+        rule: { type: 'min', value: 12 },
+        cite: cite(GB1, '2.3.1', '正文第 3 页'),
+        fix: '加设直线形坡道、避免折返，纵坡不陡于 1:12；坡面平整、防滑、无反光，临空侧设安全阻挡；场地受限时可改用轮椅升降平台。',
+        cost: { label: '坡道改造', unit: 'm²', price: 450 }, priority: 'high' },
+      { id: 'ramp_cross', label: '横向坡度', kind: 'slope', unit: '（1:x）',
+        req: '不应陡于 1:50',
+        rule: { type: 'min', value: 50 },
+        cite: cite(GB1, '2.3.1', '正文第 3 页'),
+        fix: '修补坡面横向找坡，使横坡不陡于 1:50，防止轮椅侧滑。',
+        cost: { label: '坡面找坡', unit: 'm²', price: 180 }, priority: 'mid' },
+      { id: 'ramp_width', label: '坡道净宽', kind: 'length', unit: 'mm',
+        req: '不应小于 1.20m',
+        rule: { type: 'min', value: 1200 },
+        cite: cite(GB1, '2.3.2', '正文第 3 页'),
+        fix: '拓宽坡道或清除两侧障碍，净宽不小于 1.20m，保证轮椅与陪护人员可以并行。',
+        cost: { label: '坡道拓宽', unit: 'm²', price: 450 }, priority: 'high' },
+      { id: 'ramp_landing', label: '中间平台水平长度', kind: 'length', unit: 'mm',
+        req: '不应小于 1.50m',
+        rule: { type: 'min', value: 1500 },
+        cite: cite(GB1, '2.3.3', '正文第 3 页'),
+        fix: '起终点及中间休息平台水平长度不小于 1.50m，保证轮椅停靠与回转。',
+        cost: { label: '平台改造', unit: '处', price: 800 }, priority: 'mid' },
+      { id: 'ramp_handrail', label: '两侧扶手（高差>300mm 且坡度>1:20 时）', kind: 'bool', unit: '',
+        req: '高差大于 300mm 且坡度大于 1:20 时，应在两侧设置扶手',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '2.3.4', '正文第 3 页'),
+        fix: '高差大于 300mm 时两侧设连续扶手、中途不得断开；扶手高 850~900mm，起终点水平延伸不小于 300mm。',
+        cost: { label: '扶手增设', unit: 'm', price: 260 }, priority: 'high' }
+    ]
+  },
+  curb: {
+    name: '缘石坡道',
+    photoTips: '正对坡口拍摄，画面同时包含车行道边缘与人行道，便于核对坡口高差。',
+    items: [
+      { id: 'curb_flush', label: '坡口与车行道高差', kind: 'length', unit: 'mm',
+        req: '坡口与车行道之间不应有高差',
+        rule: { type: 'max', value: 0 },
+        cite: cite(GB1, '2.10.2', '正文第 7 页'),
+        fix: '铣刨或补顺坡口，消除与车行道之间的高差，做到无坎衔接，避免轮椅颠簸受阻。',
+        cost: { label: '坡口顺接', unit: '处', price: 200 }, priority: 'high' },
+      { id: 'curb_slope', label: '坡面坡度', kind: 'slope', unit: '（1:x）',
+        req: '全宽式不应陡于 1:20，其他形式不应陡于 1:12',
+        rule: { type: 'min', value: 12 },
+        cite: cite(GB1, '2.10.4', '正文第 7 页'),
+        fix: '放缓坡面至不陡于 1:12；有条件时优先改为全宽式缘石坡道（不陡于 1:20）。',
+        cost: { label: '缘石坡道改造', unit: '处', price: 600 }, priority: 'high' },
+      { id: 'curb_width', label: '坡口宽度', kind: 'length', unit: 'mm',
+        req: '三面坡正面宽度不应小于 1.20m，其他形式坡口宽度不应小于 1.50m',
+        rule: { type: 'min', value: 1200 },
+        cite: cite(GB1, '2.10.5', '正文第 7 页'),
+        fix: '加宽坡口（三面坡正面不小于 1.20m，其他形式不小于 1.50m），保证轮椅正面通过。',
+        cost: { label: '坡口加宽', unit: '处', price: 500 }, priority: 'mid' }
+    ]
+  },
+  door: {
+    name: '门',
+    photoTips: '正对门洞拍摄，画面包含门槛位置和门扇完全打开后的通行净宽。',
+    items: [
+      { id: 'door_threshold', label: '门槛高差', kind: 'length', unit: 'mm',
+        req: '不应设置门槛；有高差时不应大于 15mm，并应以不大于 1:10 的斜面过渡',
+        rule: { type: 'max', value: 15 },
+        cite: cite(GB1, '2.5.3', '正文第 3 页'),
+        fix: '拆除门槛；确有高差时做不大于 1:10 的斜面过渡且高差不超过 15mm，保证轮椅平稳通过。',
+        cost: { label: '门槛消除', unit: '处', price: 150 }, priority: 'high' },
+      { id: 'door_width', label: '门开启后通行净宽', kind: 'length', unit: 'mm',
+        req: '手动门新建≥900mm、既有≥800mm；自动门≥1.00m',
+        rule: { type: 'min', value: 800 },
+        cite: cite(GB1, '2.5.4 / 2.5.5', '正文第 3 页'),
+        fix: '拆除门框加宽至净宽不小于 900mm；取消弹簧门与旋转门；玻璃门设醒目提示标志防碰撞；门内外留直径不小于 1.50m 轮椅回转空间；宜装距地约 900mm 横向把手。',
+        cost: { label: '门洞改造', unit: '樘', price: 1200 }, priority: 'high' }
+    ]
+  },
+  steps: {
+    name: '台阶',
+    photoTips: '从侧面拍摄可量踏步高度与深度；再补一张正面照核对扶手与提示盲道。',
+    items: [
+      { id: 'steps_tread', label: '踏步深度（踏面宽）', kind: 'length', unit: 'mm',
+        req: '不宜小于 300mm',
+        rule: { type: 'min', value: 300 },
+        cite: cite(GB2, '3.6.2', '正文第 10 页'),
+        fix: '加深踏步至不小于 300mm，保证全脚掌着地；无法改造时应增设坡道等替代通行方式。',
+        cost: { label: '踏步改造', unit: 'm²', price: 320 }, priority: 'mid' },
+      { id: 'steps_riser', label: '踏步高度（踢面高）', kind: 'length', unit: 'mm',
+        req: '不宜大于 150mm，且不宜小于 100mm',
+        rule: { type: 'range', min: 100, max: 150 },
+        cite: cite(GB2, '3.6.2', '正文第 10 页'),
+        fix: '调整踏步高度至 100~150mm 区间；超高时应结合坡道改造。',
+        cost: { label: '踏步改造', unit: 'm²', price: 320 }, priority: 'mid' },
+      { id: 'steps_handrail', label: '三级及以上两侧扶手', kind: 'bool', unit: '',
+        req: '三级及三级以上的台阶应在两侧设置扶手',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '2.7.2', '正文第 6 页'),
+        fix: '台阶两侧设连续扶手、中途不得断开；扶手高 850~900mm；起终点水平延伸不小于 300mm；末端向内拐向墙面或向下延伸不小于 100mm；内侧距墙不小于 40mm 便于抓握。',
+        cost: { label: '扶手增设', unit: 'm', price: 260 }, priority: 'high' },
+      { id: 'steps_warning', label: '踏步起终点提示盲道', kind: 'bool', unit: '',
+        req: '距踏步起点和终点 250mm~300mm 处应设提示盲道',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '2.7.1', '正文第 6 页'),
+        fix: '在踏步起点和终点前 250~300mm 处铺设提示盲道，提示视障者台阶位置。',
+        cost: { label: '提示盲道', unit: 'm²', price: 180 }, priority: 'mid' },
+      { id: 'steps_color', label: '首末级踏步颜色区分', kind: 'bool', unit: '',
+        req: '第一级和最后一级踏步应在颜色或材质上与平台有明显区别',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '2.7.1', '正文第 6 页'),
+        fix: '在首末级踏步边缘涂刷对比色防滑条，便于低视力者识别踏步起止。',
+        cost: { label: '防滑对比条', unit: 'm', price: 35 }, priority: 'low' }
+    ]
+  },
+  handrail: {
+    name: '扶手',
+    photoTips: '正对扶手侧面拍摄，包含起点/终点的水平延伸段和与墙面的间距；卷尺可作参照。',
+    items: [
+      { id: 'handrail_height', label: '扶手高度（上沿）', kind: 'length', unit: 'mm',
+        req: '单层扶手应为 850mm~900mm；设双层时上层 850~900mm、下层 650~700mm',
+        rule: { type: 'range', min: 850, max: 900 },
+        cite: cite(GB1, '2.8.1', '正文第 6 页'),
+        fix: '调整扶手高度至 850~900mm；人流含儿童时增设 650~700mm 下层扶手。',
+        cost: { label: '扶手调整', unit: 'm', price: 260 }, priority: 'high' },
+      { id: 'handrail_extend', label: '起终点水平延伸', kind: 'length', unit: 'mm',
+        req: '起点和终点处应水平延伸不小于 300mm，末端向墙面或向下延伸不小于 100mm',
+        rule: { type: 'min', value: 300 },
+        cite: cite(GB1, '2.8.3', '正文第 6 页'),
+        fix: '扶手两端水平延伸不小于 300mm，末端向内拐向墙面或向下延伸不小于 100mm，防止挂碰并提示起止。',
+        cost: { label: '扶手延长', unit: '处', price: 180 }, priority: 'mid' },
+      { id: 'handrail_wall', label: '内侧距墙净距', kind: 'length', unit: 'mm',
+        req: '扶手截面内侧边缘与墙面的净距离不应小于 40mm',
+        rule: { type: 'min', value: 40 },
+        cite: cite(GB1, '2.8.4', '正文第 6 页'),
+        fix: '外移支架，使扶手内侧边缘距墙净距不小于 40mm，便于抓握。',
+        cost: { label: '支架调整', unit: 'm', price: 80 }, priority: 'low' },
+      { id: 'handrail_grip', label: '截面尺寸（直径/宽度）', kind: 'length', unit: 'mm',
+        req: '圆形扶手直径 35~50mm，矩形截面宽度 35~50mm',
+        rule: { type: 'range', min: 35, max: 50 },
+        cite: cite(GB2, '3.8.5', '正文第 12 页'),
+        fix: '更换为直径或截面宽度 35~50mm 的扶手，保证可连续抓握。',
+        cost: { label: '扶手更换', unit: 'm', price: 260 }, priority: 'low' }
+    ]
+  },
+  tactile: {
+    name: '盲道',
+    photoTips: '垂直俯拍盲道，画面包含一块完整盲道砖（300mm）作标定参照，并覆盖被占用或缺损处。',
+    items: [
+      { id: 'tactile_occupied', label: '盲道被占用/阻断', kind: 'bool', unit: '',
+        req: '任何设施不得占用盲道',
+        rule: { type: 'presence', expect: false },
+        cite: cite(GB1, '2.11.2', '正文第 8 页'),
+        fix: '清除占用盲道的车辆、摊位、围挡等设施，恢复盲道连续通行；纳入日常巡查防止回潮。',
+        cost: { label: '清理占道', unit: '处', price: 100 }, priority: 'high' },
+      { id: 'tactile_width', label: '行进盲道宽度', kind: 'length', unit: 'mm',
+        req: '宜为 250mm~500mm',
+        rule: { type: 'range', min: 250, max: 500 },
+        cite: cite(GB2, '3.2.2', '正文第 6 页'),
+        fix: '按 250~500mm 宽度重新铺设行进盲道，并与提示盲道连续衔接。',
+        cost: { label: '盲道砖铺贴', unit: 'm²', price: 180 }, priority: 'mid' },
+      { id: 'tactile_hint', label: '提示盲道宽度', kind: 'length', unit: 'mm',
+        req: '不应小于 300mm，且不应小于行进盲道的宽度',
+        rule: { type: 'min', value: 300 },
+        cite: cite(GB1, '2.11.3', '正文第 8 页'),
+        fix: '提示盲道加宽至不小于 300mm，且不小于相邻行进盲道宽度，保证可识别。',
+        cost: { label: '盲道砖铺贴', unit: 'm²', price: 180 }, priority: 'mid' },
+      { id: 'tactile_contrast', label: '与相邻路面的颜色/材质差异', kind: 'bool', unit: '',
+        req: '盲道的颜色或材质应与相邻路面形成明显差异',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '2.11.4', '正文第 8 页'),
+        fix: '更换为与相邻路面有明显颜色或材质差异的盲道砖，便于低视力者辨认。',
+        cost: { label: '盲道砖更换', unit: 'm²', price: 180 }, priority: 'low' }
+    ]
+  },
+  parking: {
+    name: '停车位',
+    photoTips: '正对无障碍停车位拍摄，画面包含车位线、一侧轮椅通道线与地面标志。',
+    items: [
+      { id: 'parking_aisle', label: '一侧轮椅通道宽度', kind: 'length', unit: 'mm',
+        req: '不应小于 1.20m',
+        rule: { type: 'min', value: 1200 },
+        cite: cite(GB1, '2.9.2', '正文第 6 页'),
+        fix: '重新划线，在车位一侧留出宽度不小于 1.20m 的轮椅通道，保证乘轮椅者上下车。',
+        cost: { label: '车位划线改造', unit: '处', price: 300 }, priority: 'high' },
+      { id: 'parking_slope', label: '地面坡度', kind: 'slope', unit: '（1:x）',
+        req: '不应陡于 1:50',
+        rule: { type: 'min', value: 50 },
+        cite: cite(GB1, '2.9.3', '正文第 6 页'),
+        fix: '地面找坡平整，或将无障碍车位调整至坡度不陡于 1:50 的位置。',
+        cost: { label: '地面整修', unit: 'm²', price: 180 }, priority: 'mid' },
+      { id: 'parking_sign', label: '停车线/轮椅通道线/无障碍标志', kind: 'bool', unit: '',
+        req: '应设置停车线、轮椅通道线和无障碍标志',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '2.9.4', '正文第 6 页'),
+        fix: '补划停车位线与轮椅通道线，并设置无障碍标志，明示车位用途、防止被占用。',
+        cost: { label: '标志标线', unit: '处', price: 350 }, priority: 'high' }
+    ]
+  },
+  desk: {
+    name: '低位服务台',
+    photoTips: '正面拍摄服务台，画面包含台面高度与台下空间；卷尺竖放可作参照。',
+    items: [
+      { id: 'desk_height', label: '台面高度', kind: 'length', unit: 'mm',
+        req: '应为 700mm~850mm',
+        rule: { type: 'range', min: 700, max: 850 },
+        cite: cite(GB1, '3.6.4', '正文第 13 页'),
+        fix: '在一端或中部预留 700~850mm 低位台面；台下留空保证膝部足尖进入；台前留轮椅回转空间；同步设求助呼叫按钮。',
+        cost: { label: '台面改造', unit: '组', price: 1500 }, priority: 'mid' },
+      { id: 'desk_knee', label: '容膝空间净高', kind: 'length', unit: 'mm',
+        req: '容膝空间净高不小于 650mm、净宽不小于 750mm、进深不小于 450mm',
+        rule: { type: 'min', value: 650 },
+        cite: cite(GB1, '3.6.4', '正文第 13 页'),
+        fix: '改造台下空间，保证容膝空间净高≥650mm、净宽≥750mm、进深≥450mm，便于轮椅使用者膝部足尖进入。',
+        cost: { label: '容膝空间改造', unit: '处', price: 800 }, priority: 'mid' },
+      { id: 'desk_turn', label: '台前轮椅回转空间', kind: 'bool', unit: '',
+        req: '台前应留有轮椅回转空间',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '3.6.3', '正文第 13 页'),
+        fix: '清理台前区域，以直径不小于 1.50m 圆形标识标定回转区并保持畅通。',
+        cost: { label: '空间调整', unit: '处', price: 200 }, priority: 'mid' }
+    ]
+  },
+  sign: {
+    name: '标识',
+    photoTips: '正对标识拍摄，画面包含标识与所指设施的位置关系，便于核对连续指引。',
+    items: [
+      { id: 'sign_presence', label: '无障碍设施处标识设置', kind: 'bool', unit: '',
+        req: '无障碍设施处均应设置无障碍标识',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '4.0.1~4.0.4', '正文第 15 页'),
+        fix: '在出入口、通道、卫生间、停车位等关键节点增设无障碍标识，并纳入连续指引系统。',
+        cost: { label: '标识增设', unit: '块', price: 120 }, priority: 'mid' },
+      { id: 'sign_visibility', label: '标识连续可见、无遮挡', kind: 'bool', unit: '',
+        req: '标识应连续指明设施位置与方向，站立和坐姿均可见且不被遮挡',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '4.0.1~4.0.4', '正文第 15 页'),
+        fix: '调整标识位置与朝向、高度兼顾站立与坐姿视线，清除遮挡物，保证连续清楚指引位置与方向。',
+        cost: { label: '标识调整', unit: '处', price: 80 }, priority: 'mid' },
+      { id: 'sign_warn', label: '安全警示处视觉+听觉警示', kind: 'bool', unit: '',
+        req: '涉及安全警示处应同时提供视觉和听觉警示标识',
+        rule: { type: 'presence', expect: true },
+        cite: cite(GB1, '4.0.1~4.0.4', '正文第 15 页'),
+        fix: '在安全警示处同时增设听觉警示装置，与视觉标识配合，兼顾视障者。',
+        cost: { label: '声光警示增设', unit: '处', price: 600 }, priority: 'mid' }
+    ]
+  }
+};
+
+var PRIORITY_TEXT = { high: '高优先级', mid: '中优先级', low: '一般' };
+var PRIORITY_TAG = { high: 'tag--high', mid: 'tag--mid', low: 'tag--low' };
+/* 设施类型在现场示意图上的预设锚点（960×420 视窗坐标） */
+var ANCHORS = {
+  passage: [480, 180], ramp: [520, 320], curb: [240, 250], door: [490, 300],
+  steps: [200, 330], handrail: [560, 295], tactile: [330, 180],
+  parking: [600, 90], desk: [760, 350], sign: [150, 300]
+};
+
+/* ============================================================
+   2. 全局状态与 DOM 引用
+   ============================================================ */
+var app = {
+  img: null, imgW: 0, imgH: 0, viewScale: 1,
+  facility: null,
+  mmPerPx: null, calibLabel: '', calibPx: 0,
+  lines: [],          // {x1,y1,x2,y2, calib?, itemId?, role?}，图像坐标
+  active: null,       // {mode:'calib'} | {mode:'measure', fac, item, li, step, first}
+  temp: null,         // 正在拖拽的线
+  results: {},        // facKey -> itemId -> {value, verdict, source}
+  issues: [], selIssue: -1
+};
+
+var photoInput = $('photoInput'), canvasStage = $('canvasStage'),
+    photoCanvas = $('photoCanvas'), canvasPlaceholder = $('canvasPlaceholder'),
+    guideText = $('guideText'), shootTip = $('shootTip'),
+    btnCalDraw = $('btnCalDraw'), calLength = $('calLength'), calUnit = $('calUnit'),
+    btnCalConfirm = $('btnCalConfirm'), calStatus = $('calStatus'),
+    measureList = $('measureList'), measureCounter = $('measureCounter'),
+    tplMeasureItem = $('tplMeasureItem'), detectList = $('detectList'),
+    btnRerunDetect = $('btnRerunDetect'), lineMirror = $('lineMirror'),
+    mMeasured = $('mMeasured'), mFailed = $('mFailed'),
+    mSchemes = $('mSchemes'), mBudget = $('mBudget'),
+    btnClearLines = $('btnClearLines'), btnToReport = $('btnToReport'),
+    rCompliance = $('rCompliance'), rAdopted = $('rAdopted'),
+    rPending = $('rPending'), rBudget = $('rBudget'),
+    btnReset = $('btnReset'), btnGenerate = $('btnGenerate'),
+    reportEl = $('report'), issueList = $('issueList'), schemeDetail = $('schemeDetail'),
+    markerLayer = $('markerLayer'),
+    siteName = $('siteName'), siteAddr = $('siteAddr'),
+    siteDate = $('siteDate'), siteVolunteer = $('siteVolunteer'),
+    siteScope = $('siteScope');
+
+var overlay = null, octx = null, photoCtx = photoCanvas.getContext('2d');
+
+function say(msg) { guideText.textContent = msg; }
+
+/* ============================================================
+   3. 判定引擎（三态 + 容差）
+   ============================================================ */
+function toleranceOf(item) {
+  var r = item.rule;
+  if (r.tol != null) return r.tol;
+  var base = r.value != null ? r.value : Math.max(Math.abs(r.min || 0), Math.abs(r.max || 0));
+  var rel = base * 0.05;
+  return item.kind === 'length' ? Math.max(rel, 10) : rel;
+}
+/* 返回 'pass' | 'border' | 'fail' | null */
+function verdictOf(item, raw) {
+  var r = item.rule;
+  if (r.type === 'presence') {
+    if (raw !== 'yes' && raw !== 'no') return null;
+    return ((raw === 'yes') === r.expect) ? 'pass' : 'fail';
+  }
+  var v = parseFloat(raw);
+  if (!isFinite(v) || v < 0) return null;
+  var tol = toleranceOf(item);
+  if (r.type === 'min') {
+    if (v >= r.value) return 'pass';
+    return v >= r.value - tol ? 'border' : 'fail';
+  }
+  if (r.type === 'max') {
+    if (v <= r.value) return 'pass';
+    return v <= r.value + tol ? 'border' : 'fail';
+  }
+  /* range */
+  if (v >= r.min && v <= r.max) return 'pass';
+  if ((v >= r.min - tol && v < r.min) || (v > r.max && v <= r.max + tol)) return 'border';
+  return 'fail';
+}
+var VERDICT_TEXT = { pass: '合格', border: '临界合格', fail: '不合格' };
+var VERDICT_CLASS = { pass: 'verdict--good', border: 'verdict--warn', fail: 'verdict--bad' };
+
+function fmtVal(item, v) {
+  if (item.kind === 'bool') return v === 'yes' ? '有' : (v === 'no' ? '无' : '—');
+  if (item.kind === 'slope') return '1:' + v;
+  return v + ' mm';
+}
+function renderBadge(li, verdict) {
+  var badge = li.querySelector('.verdict');
+  badge.className = 'verdict';
+  if (!verdict) { badge.textContent = '待测量'; return; }
+  badge.classList.add(VERDICT_CLASS[verdict]);
+  badge.textContent = VERDICT_TEXT[verdict];
+  if (verdict === 'border') badge.title = '接近限值，建议现场复核';
+  else badge.removeAttribute('title');
+}
+
+/* ============================================================
+   4. 设施类型联动 + 测量项列表
+   ============================================================ */
+function buildMeasureList(facKey) {
+  var fac = STANDARDS[facKey];
+  measureList.innerHTML = '';
+  fac.items.forEach(function (item) {
+    var frag = tplMeasureItem.content.cloneNode(true);
+    var li = frag.querySelector('li');
+    li.setAttribute('data-item-id', item.id);
+    li.querySelector('.measure-item__name').textContent = item.label;
+    var tag = li.querySelector('.tag');
+    tag.className = 'tag ' + PRIORITY_TAG[item.priority];
+    tag.textContent = PRIORITY_TEXT[item.priority];
+    li.querySelector('.measure-item__req').textContent = item.req;
+    li.querySelector('.measure-item__clause').textContent =
+      item.cite.std + ' §' + item.cite.clause + ' · ' + item.cite.page;
+
+    var unitEl = li.querySelector('.measure-item__unit');
+    var input = li.querySelector('.measure-item__input');
+    var drawBtn = li.querySelector('.btn-draw');
+    var clearBtn = li.querySelector('.btn-clear');
+
+    if (item.kind === 'bool') {
+      var sel = document.createElement('select');
+      sel.className = 'input input--inline measure-item__input';
+      sel.setAttribute('aria-label', item.label + '（有/无）');
+      sel.innerHTML = '<option value="">请选择</option><option value="yes">有</option><option value="no">无</option>';
+      input.parentNode.replaceChild(sel, input);
+      input = sel;
+      unitEl.textContent = '';
+      drawBtn.style.display = 'none';
+    } else if (item.kind === 'slope') {
+      input.placeholder = '如 12 表示 1:12';
+      input.setAttribute('aria-label', item.label + '，填 1 比 x 中的 x');
+      unitEl.textContent = item.unit;
+      drawBtn.textContent = '量坡度（画两条线）';
+    } else {
+      input.setAttribute('aria-label', item.label + '（毫米）');
+      unitEl.textContent = item.unit;
+    }
+
+    input.addEventListener('input', function () { onManualInput(facKey, item, li); });
+    input.addEventListener('change', function () { onManualInput(facKey, item, li); });
+    drawBtn.addEventListener('click', function () { startDraw(facKey, item, li); });
+    clearBtn.addEventListener('click', function () { clearItem(facKey, item, li); });
+
+    /* 恢复历史结果 */
+    var saved = app.results[facKey] && app.results[facKey][item.id];
+    if (saved) {
+      input.value = saved.value;
+      renderBadge(li, saved.verdict);
+    }
+    measureList.appendChild(frag);
+  });
+  updateMeasureCounter();
+}
+
+function onManualInput(facKey, item, li) {
+  var input = li.querySelector('.measure-item__input');
+  var v = input.value;
+  if (v === '' || v == null) {
+    if (app.results[facKey]) delete app.results[facKey][item.id];
+    renderBadge(li, null);
+  } else {
+    setItemValue(facKey, item, item.kind === 'bool' ? v : round1(parseFloat(v)), 'manual', true);
+    return;
+  }
+  updateMeasureCounter(); updateDiagBar();
+}
+
+function setItemValue(facKey, item, value, source, fromInput) {
+  var verdict = verdictOf(item, value);
+  app.results[facKey] = app.results[facKey] || {};
+  app.results[facKey][item.id] = { value: value, verdict: verdict, source: source };
+  var li = measureList.querySelector('[data-item-id="' + item.id + '"]');
+  if (li) {
+    var input = li.querySelector('.measure-item__input');
+    if (input && !fromInput) input.value = value;
+    renderBadge(li, verdict);
+  }
+  updateMeasureCounter(); updateDiagBar();
+  if (source !== 'prefill' && verdict) {
+    say(item.label + '：实测 ' + fmtVal(item, value) + ' → ' + VERDICT_TEXT[verdict] +
+        (verdict === 'border' ? '（接近限值，建议复核）' : ''));
+  }
+}
+
+function clearItem(facKey, item, li) {
+  if (app.results[facKey]) delete app.results[facKey][item.id];
+  app.lines = app.lines.filter(function (l) { return l.itemId !== item.id; });
+  var input = li.querySelector('.measure-item__input');
+  input.value = '';
+  renderBadge(li, null);
+  redrawOverlay(); updateMeasureCounter(); updateDiagBar();
+}
+
+function selectFacility(facKey, fromScene) {
+  if (app.facility === facKey && !fromScene) return;
+  app.facility = facKey;
+  cancelDraw();
+  app.lines = [];
+  redrawOverlay();
+  qsa('[data-fac]').forEach(function (c) {
+    c.setAttribute('aria-pressed', c.getAttribute('data-fac') === facKey ? 'true' : 'false');
+  });
+  var fac = STANDARDS[facKey];
+  shootTip.innerHTML = '<strong>拍摄要点：</strong>' + escapeHtml(fac.photoTips);
+  buildMeasureList(facKey);
+  if (app.mmPerPx && !fromScene) {
+    setCalStatus('warn', '1 px ≈ ' + app.mmPerPx.toFixed(3) + ' mm（' + app.calibLabel +
+      '）。已切换拍摄类型，若更换了拍摄位置或距离，请重新标定。');
+  }
+  if (!fromScene) say('已选择「' + fac.name + '」。请在照片上画线量取，或直接手填实测值。');
+}
+
+qsa('[data-fac]').forEach(function (chip) {
+  chip.addEventListener('click', function () { selectFacility(chip.getAttribute('data-fac'), false); });
+});
+
+/* ============================================================
+   5. 照片加载与双层画布
+   ============================================================ */
+function ensureOverlay() {
+  if (overlay) return;
+  overlay = document.createElement('canvas');
+  overlay.className = 'overlay-canvas';
+  overlay.setAttribute('aria-hidden', 'true');
+  canvasStage.appendChild(overlay);
+  octx = overlay.getContext('2d');
+  overlay.addEventListener('mousedown', drawStart);
+  overlay.addEventListener('mousemove', drawMove);
+  document.addEventListener('mouseup', drawEnd);
+  overlay.addEventListener('touchstart', drawStart, { passive: false });
+  overlay.addEventListener('touchmove', drawMove, { passive: false });
+  overlay.addEventListener('touchend', drawEnd);
+}
+
+function syncOverlay() {
+  if (!overlay || !app.img) return;
+  overlay.style.left = photoCanvas.offsetLeft + 'px';
+  overlay.style.top = photoCanvas.offsetTop + 'px';
+  overlay.style.width = photoCanvas.width + 'px';
+  overlay.style.height = photoCanvas.height + 'px';
+  overlay.width = photoCanvas.width;
+  overlay.height = photoCanvas.height;
+  app.viewScale = photoCanvas.width / app.imgW;
+  redrawOverlay();
+}
+
+function setPhoto(source, w, h, opts) {
+  opts = opts || {};
+  app.img = source; app.imgW = w; app.imgH = h;
+  canvasPlaceholder.style.display = 'none';
+  var avail = canvasStage.clientWidth - 2;
+  if (!avail || avail < 200) avail = 800;
+  var s = Math.min(avail / w, 560 / h);
+  if (!isFinite(s) || s <= 0) s = 1;
+  photoCanvas.width = Math.max(1, Math.round(w * s));
+  photoCanvas.height = Math.max(1, Math.round(h * s));
+  photoCtx.drawImage(source, 0, 0, photoCanvas.width, photoCanvas.height);
+  ensureOverlay();
+  cancelDraw();
+  app.lines = [];
+  syncOverlay();
+  runDetect();
+  if (app.mmPerPx && !opts.keepCalibQuiet) {
+    setCalStatus('warn', '1 px ≈ ' + app.mmPerPx.toFixed(3) + ' mm（' + app.calibLabel +
+      '）。照片已更换：请确认原标定仍适用，否则请重新标定。');
+  }
+}
+
+photoInput.addEventListener('change', function () {
+  var f = photoInput.files && photoInput.files[0];
+  if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    var img = new Image();
+    img.onload = function () {
+      setPhoto(img, img.naturalWidth, img.naturalHeight, {});
+      say('照片已加载。请先在第 1 步选择拍摄类型，再在第 2 步完成标定。');
+    };
+    img.onerror = function () { say('照片读取失败，请换一张试试。'); };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+window.addEventListener('resize', function () { syncOverlay(); });
+
+/* ============================================================
+   6. 画线引擎（鼠标 + 触屏）与标定
+   ============================================================ */
+function evtPos(e) {
+  var r = overlay.getBoundingClientRect();
+  var t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
+  return [(t.clientX - r.left) / app.viewScale, (t.clientY - r.top) / app.viewScale];
+}
+function drawStart(e) {
+  if (!app.active || !app.img) return;
+  e.preventDefault();
+  var p = evtPos(e);
+  app.temp = { x1: p[0], y1: p[1], x2: p[0], y2: p[1] };
+}
+function drawMove(e) {
+  if (!app.temp) return;
+  e.preventDefault();
+  var p = evtPos(e);
+  app.temp.x2 = p[0]; app.temp.y2 = p[1];
+  redrawOverlay();
+}
+function drawEnd() {
+  if (!app.temp) return;
+  var l = app.temp; app.temp = null;
+  if (lineLen(l) < 5) { redrawOverlay(); return; }
+  commitLine(l);
+}
+
+function lineColor(l) {
+  if (l.calib) return '#7c3aed';
+  if (l.role === 'rise') return '#d97706';
+  if (l.role === 'run') return '#0284c7';
+  return '#0284c7';
+}
+function lineLabel(l) {
+  var px = lineLen(l);
+  if (l.calib) {
+    return app.mmPerPx ? ('标定 ' + Math.round(px * app.mmPerPx) + ' mm')
+                       : ('标定线 ' + Math.round(px) + ' px');
+  }
+  var item = findItem(l.itemId);
+  if (l.role === 'rise') return '高差 ' + Math.round(px) + ' px';
+  if (l.role === 'run') return '水平长度 ' + Math.round(px) + ' px';
+  if (item && item.kind === 'length') {
+    return app.mmPerPx ? (Math.round(px * app.mmPerPx) + ' mm')
+                       : (Math.round(px) + ' px（未标定）');
+  }
+  return Math.round(px) + ' px';
+}
+function drawLine(l, dashed) {
+  var s = app.viewScale;
+  var x1 = l.x1 * s, y1 = l.y1 * s, x2 = l.x2 * s, y2 = l.y2 * s;
+  var color = lineColor(l);
+  octx.save();
+  octx.lineWidth = 3; octx.strokeStyle = color; octx.fillStyle = color;
+  if (dashed) octx.setLineDash([8, 6]);
+  octx.beginPath(); octx.moveTo(x1, y1); octx.lineTo(x2, y2); octx.stroke();
+  octx.setLineDash([]);
+  [ [x1, y1], [x2, y2] ].forEach(function (p) {
+    octx.beginPath(); octx.arc(p[0], p[1], 5, 0, Math.PI * 2);
+    octx.fillStyle = '#ffffff'; octx.fill();
+    octx.lineWidth = 2.5; octx.strokeStyle = color; octx.stroke();
+  });
+  var text = lineLabel(l);
+  octx.font = '600 13px sans-serif';
+  var tw = octx.measureText(text).width;
+  var mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 10;
+  octx.fillStyle = 'rgba(15, 23, 32, 0.78)';
+  octx.fillRect(mx - tw / 2 - 6, my - 15, tw + 12, 21);
+  octx.fillStyle = '#ffffff';
+  octx.textAlign = 'center'; octx.textBaseline = 'middle';
+  octx.fillText(text, mx, my - 4);
+  octx.restore();
+}
+function redrawOverlay() {
+  if (!octx) return;
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+  app.lines.forEach(function (l) { drawLine(l, false); });
+  if (app.temp) drawLine(app.temp, true);
+  updateLineMirror();
+}
+function updateLineMirror() {
+  lineMirror.innerHTML = app.lines.map(function (l, i) {
+    return '<li>第 ' + (i + 1) + ' 条线：' + escapeHtml(lineLabel(l)) + '</li>';
+  }).join('');
+}
+function findItem(itemId) {
+  if (!itemId) return null;
+  for (var k in STANDARDS) {
+    var arr = STANDARDS[k].items;
+    for (var i = 0; i < arr.length; i++) if (arr[i].id === itemId) return arr[i];
+  }
+  return null;
+}
+
+function startDraw(facKey, item, li) {
+  if (!app.img) { say('请先选择照片或示例场景，再开始量取。'); return; }
+  cancelDraw();
+  app.active = { mode: 'measure', fac: facKey, item: item, li: li, step: item.kind === 'slope' ? 1 : 0, first: null };
+  li.classList.add('measure-item--waiting');
+  overlay.classList.add('overlay-canvas--active');
+  if (item.kind === 'slope') {
+    say('量坡度：第一步，请沿「高差」方向画一条线（竖向）。' +
+        (app.mmPerPx ? '' : '坡度是比值，未标定也可量取。'));
+  } else {
+    say('请在照片上沿「' + item.label + '」画一条线。' +
+        (app.mmPerPx ? '' : '注意：尚未标定，画完后只显示像素长度。'));
+  }
+}
+function cancelDraw() {
+  if (app.active && app.active.li) app.active.li.classList.remove('measure-item--waiting');
+  app.active = null; app.temp = null;
+  if (overlay) overlay.classList.remove('overlay-canvas--active');
+  qsa('.measure-item--waiting', measureList).forEach(function (el) { el.classList.remove('measure-item--waiting'); });
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && app.active) { cancelDraw(); redrawOverlay(); say('已取消本次画线。'); }
+});
+
+function commitLine(l) {
+  var act = app.active;
+  if (!act) { redrawOverlay(); return; }
+
+  if (act.mode === 'calib') {
+    app.lines = app.lines.filter(function (x) { return !x.calib; });
+    l.calib = true;
+    app.lines.push(l);
+    app.calibPx = lineLen(l);
+    cancelDraw(); redrawOverlay();
+    say('已画标定线（' + Math.round(app.calibPx) + ' px）。请在第 2 步输入它的实际长度（或点一个参照物），再点「确认」。');
+    calLength.focus();
+    return;
+  }
+
+  var item = act.item;
+  l.itemId = item.id;
+
+  if (item.kind === 'slope') {
+    if (act.step === 1) {
+      l.role = 'rise';
+      app.lines = app.lines.filter(function (x) { return x.itemId !== item.id; });
+      app.lines.push(l);
+      act.first = l; act.step = 2;
+      redrawOverlay();
+      say('第一条线（高差）已完成。第二步：请沿坡道的「水平长度」方向画第二条线。');
+      return;
+    }
+    l.role = 'run';
+    app.lines.push(l);
+    var rise = lineLen(act.first), run = lineLen(l);
+    var x = round1(run / rise);
+    var li = act.li;
+    cancelDraw(); redrawOverlay();
+    setItemValue(act.fac, item, x, 'line', false);
+    return;
+  }
+
+  /* length */
+  app.lines = app.lines.filter(function (x) { return x.itemId !== item.id; });
+  app.lines.push(l);
+  var px = lineLen(l);
+  var li2 = act.li, fac2 = act.fac;
+  cancelDraw(); redrawOverlay();
+  if (app.mmPerPx) {
+    setItemValue(fac2, item, round1(px * app.mmPerPx), 'line', false);
+  } else {
+    say('这条线长 ' + Math.round(px) + ' px。尚未标定，无法换算毫米——请先在第 2 步完成标定。');
+  }
+}
+
+/* 标定 */
+function setCalStatus(state, text) {
+  var dot = state === 'ok' ? 'status-dot status-dot--ok'
+          : state === 'warn' ? 'status-dot status-dot--warn' : 'status-dot';
+  calStatus.innerHTML = '<span class="' + dot + '" aria-hidden="true"></span><span>' + escapeHtml(text) + '</span>';
+}
+btnCalDraw.addEventListener('click', function () {
+  if (!app.img) { say('请先选择照片或示例场景，再画标定线。'); return; }
+  cancelDraw();
+  app.active = { mode: 'calib' };
+  overlay.classList.add('overlay-canvas--active');
+  say('请沿照片里已知长度的物体画一条线（如一块盲道砖的边长），画完后输入实际长度并确认。');
+});
+qsa('[data-mm]').forEach(function (chip) {
+  chip.addEventListener('click', function () {
+    calLength.value = chip.getAttribute('data-mm');
+    calUnit.value = 'mm';
+    app.pendingRef = chip.getAttribute('data-ref');
+    say('已填入参照物「' + app.pendingRef + '」。若标定线已画好，请点「确认」。');
+  });
+});
+btnCalConfirm.addEventListener('click', function () {
+  if (!app.calibPx) { say('请先在照片上画一条标定线（点「画标定线」）。'); return; }
+  var raw = parseFloat(calLength.value);
+  if (!isFinite(raw) || raw <= 0) { say('请输入标定线的实际长度。'); calLength.focus(); return; }
+  var factor = calUnit.value === 'cm' ? 10 : calUnit.value === 'm' ? 1000 : 1;
+  var mm = raw * factor;
+  app.mmPerPx = mm / app.calibPx;
+  app.calibLabel = app.pendingRef || (mm + 'mm（自定义）');
+  setCalStatus('ok', '已标定：1 px ≈ ' + app.mmPerPx.toFixed(3) + ' mm（参照：' + app.calibLabel + '）');
+  /* 补算标定前已画的长度线 */
+  app.lines.forEach(function (l) {
+    if (l.itemId && !l.role) {
+      var item = findItem(l.itemId);
+      if (item && item.kind === 'length') {
+        var has = app.results[app.facility] && app.results[app.facility][item.id];
+        if (!has) setItemValue(app.facility, item, round1(lineLen(l) * app.mmPerPx), 'line', false);
+      }
+    }
+  });
+  redrawOverlay();
+  say('标定完成：1 px ≈ ' + app.mmPerPx.toFixed(3) + ' mm。现在可以画线量取了。');
+});
+
+btnClearLines.addEventListener('click', function () {
+  var cleared = [];
+  app.lines = app.lines.filter(function (l) {
+    if (l.calib) return true;
+    if (l.itemId) cleared.push(l.itemId);
+    return false;
+  });
+  if (app.facility && app.results[app.facility]) {
+    cleared.forEach(function (id) {
+      var r = app.results[app.facility][id];
+      if (r && r.source === 'line') {
+        delete app.results[app.facility][id];
+        var li = measureList.querySelector('[data-item-id="' + id + '"]');
+        if (li) { li.querySelector('.measure-item__input').value = ''; renderBadge(li, null); }
+      }
+    });
+  }
+  cancelDraw(); redrawOverlay(); updateMeasureCounter(); updateDiagBar();
+  say('已清除图上所有测量线（标定保留）。');
+});
+
+/* ============================================================
+   7. 汇总（底部横条）
+   ============================================================ */
+function forEachResult(cb) {
+  for (var fk in app.results) {
+    var fac = STANDARDS[fk]; if (!fac) continue;
+    fac.items.forEach(function (item) {
+      var r = app.results[fk][item.id];
+      if (r && r.verdict) cb(fac, item, r);
+    });
+  }
+}
+function updateMeasureCounter() {
+  if (!app.facility) { measureCounter.textContent = '已量 0 / 共 0 项'; return; }
+  var fac = STANDARDS[app.facility], done = 0;
+  fac.items.forEach(function (item) {
+    var r = app.results[app.facility] && app.results[app.facility][item.id];
+    if (r && r.verdict) done++;
+  });
+  measureCounter.textContent = '已量 ' + done + ' / 共 ' + fac.items.length + ' 项';
+}
+function updateDiagBar() {
+  var measured = 0, failed = 0, schemes = 0, budget = 0;
+  forEachResult(function (fac, item, r) {
+    measured++;
+    if (r.verdict === 'fail') failed++;
+    if (r.verdict === 'fail' || r.verdict === 'border') {
+      schemes++; budget += item.cost.price;
+    }
+  });
+  mMeasured.textContent = measured;
+  mFailed.textContent = failed;
+  mSchemes.textContent = schemes;
+  mBudget.textContent = fmtMoney(budget);
+}
+
+/* ============================================================
+   8. 图像辅助检测（纯本地像素分析，仅供参考）
+   ============================================================ */
+function setDetect(key, state, text) {
+  var li = detectList.querySelector('[data-detect="' + key + '"]');
+  if (!li) return;
+  var dot = li.querySelector('.status-dot');
+  dot.className = 'status-dot' + (state === 'ok' ? ' status-dot--ok' : state === 'warn' ? ' status-dot--warn' : state === 'bad' ? ' status-dot--bad' : '');
+  li.querySelector('.detect-item__result').textContent = text;
+}
+function runDetect() {
+  if (!app.img) {
+    ['clarity', 'brightness', 'contrast', 'texture'].forEach(function (k) { setDetect(k, 'none', '待检测'); });
+    return;
+  }
+  var W = 160, H = Math.max(1, Math.round(app.imgH * W / app.imgW));
+  var c = document.createElement('canvas'); c.width = W; c.height = H;
+  var cx = c.getContext('2d');
+  cx.drawImage(app.img, 0, 0, W, H);
+  var d;
+  try { d = cx.getImageData(0, 0, W, H).data; }
+  catch (err) { ['clarity', 'brightness', 'contrast', 'texture'].forEach(function (k) { setDetect(k, 'none', '无法分析'); }); return; }
+
+  var n = W * H, sum = 0, sum2 = 0, yellow = 0, edges = 0;
+  var lum = new Float32Array(n);
+  for (var i = 0; i < n; i++) {
+    var r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
+    var l = 0.299 * r + 0.587 * g + 0.114 * b;
+    lum[i] = l; sum += l; sum2 += l * l;
+    if (r > 180 && g > 140 && b < 120) yellow++;
+  }
+  var mean = sum / n;
+  var std = Math.sqrt(Math.max(0, sum2 / n - mean * mean));
+
+  /* Laplacian 方差（清晰度）与边缘密度 */
+  var lapSum = 0, lapSum2 = 0, cnt = 0;
+  for (var y = 1; y < H - 1; y++) {
+    for (var x = 1; x < W - 1; x++) {
+      var idx = y * W + x;
+      var lap = 4 * lum[idx] - lum[idx - 1] - lum[idx + 1] - lum[idx - W] - lum[idx + W];
+      lapSum += lap; lapSum2 += lap * lap; cnt++;
+      if (Math.abs(lap) > 40) edges++;
+    }
+  }
+  var lapMean = lapSum / cnt;
+  var lapVar = lapSum2 / cnt - lapMean * lapMean;
+
+  setDetect('clarity', lapVar < 40 ? 'warn' : 'ok',
+    lapVar < 40 ? '偏模糊，建议拿稳重拍' : '清晰度可用');
+  setDetect('brightness', (mean < 60 || mean > 205) ? 'warn' : 'ok',
+    mean < 60 ? '画面偏暗，建议补光' : mean > 205 ? '画面过曝，建议避开强光' : '亮度正常');
+  setDetect('contrast', std < 35 ? 'warn' : 'ok',
+    std < 35 ? '明暗反差不足，读数需谨慎' : '明暗反差足够');
+  var yr = yellow / n, er = edges / cnt;
+  setDetect('texture', (yr > 0.015 || er > 0.08) ? 'ok' : 'warn',
+    yr > 0.015 ? '检测到黄色规则纹理（可能是盲道），可作标定参照'
+               : er > 0.08 ? '纹理较丰富' : '未检测到明显参照纹理，建议放入参照物');
+}
+btnRerunDetect.addEventListener('click', function () {
+  runDetect();
+  say(app.img ? '已重新分析当前照片。' : '还没有照片，请先选择照片或示例场景。');
+});
+
+/* ============================================================
+   9. 示例场景（程序合成图，1 px = 2 mm，自动标定 + 预填）
+   ============================================================ */
+function brickRef(ctx, x, y) {
+  /* 300mm × 150mm 盲道砖，1px=2mm → 150×75 px */
+  ctx.fillStyle = '#f2c518'; ctx.fillRect(x, y, 150, 75);
+  ctx.strokeStyle = '#a8870a'; ctx.lineWidth = 2; ctx.strokeRect(x, y, 150, 75);
+  ctx.fillStyle = '#c9a20c';
+  for (var r = 0; r < 3; r++) for (var c2 = 0; c2 < 5; c2++) {
+    ctx.beginPath(); ctx.arc(x + 18 + c2 * 28, y + 14 + r * 24, 6, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = '#333'; ctx.font = '20px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('盲道砖 300mm（参照物）', x, y + 105);
+}
+function sceneLabel(ctx, text, x, y) {
+  ctx.fillStyle = 'rgba(20,30,40,0.75)';
+  var w = ctx.measureText(text).width;
+  ctx.fillRect(x - 8, y - 24, w + 16, 32);
+  ctx.fillStyle = '#fff'; ctx.fillText(text, x, y);
+}
+
+var SCENES = {
+  ramp: {
+    name: '入口坡道（过陡且无扶手）', fac: 'ramp',
+    prefill: { ramp_slope: 8, ramp_cross: 48, ramp_width: 1100, ramp_landing: 1450, ramp_handrail: 'no' },
+    draw: function (ctx) {
+      ctx.fillStyle = '#d7dde2'; ctx.fillRect(0, 0, 960, 600);       /* 地面 */
+      ctx.fillStyle = '#c3ccd4'; ctx.fillRect(0, 0, 960, 240);       /* 墙面 */
+      ctx.strokeStyle = '#aeb8c0'; ctx.lineWidth = 1;
+      for (var y = 40; y < 240; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(960, y); ctx.stroke(); }
+      ctx.fillStyle = '#4a5560'; ctx.fillRect(600, 50, 160, 190);    /* 门 */
+      ctx.fillStyle = '#f2c518';                                   /* 坡道面 */
+      ctx.beginPath(); ctx.moveTo(600, 240); ctx.lineTo(760, 240);
+      ctx.lineTo(920, 520); ctx.lineTo(520, 520); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#b98f00'; ctx.lineWidth = 3; ctx.stroke();
+      ctx.font = '22px sans-serif'; ctx.textAlign = 'left';
+      sceneLabel(ctx, '门', 650, 150);
+      sceneLabel(ctx, '坡道（目测过陡，无扶手）', 560, 400);
+      brickRef(ctx, 80, 430);
+      ctx.fillStyle = '#333'; ctx.font = '20px sans-serif';
+      ctx.fillText('示例一 · 入口坡道（合成示意图）', 24, 36);
+    }
+  },
+  steps: {
+    name: '门口台阶（三级、无扶手）', fac: 'steps',
+    prefill: { steps_tread: 290, steps_riser: 170, steps_handrail: 'no', steps_warning: 'no', steps_color: 'yes' },
+    draw: function (ctx) {
+      ctx.fillStyle = '#d7dde2'; ctx.fillRect(0, 0, 960, 600);
+      ctx.fillStyle = '#c3ccd4'; ctx.fillRect(0, 0, 960, 160);
+      ctx.fillStyle = '#4a5560'; ctx.fillRect(400, 20, 160, 140);    /* 门 */
+      var shades = ['#b6bfc7', '#c3ccd4', '#cfd7de'];
+      for (var i = 0; i < 3; i++) {
+        ctx.fillStyle = shades[i];
+        ctx.fillRect(400 - (i + 1) * 40, 160 + i * 90, 160 + (i + 1) * 80, 90);
+        ctx.strokeStyle = '#8f9aa4'; ctx.lineWidth = 2;
+        ctx.strokeRect(400 - (i + 1) * 40, 160 + i * 90, 160 + (i + 1) * 80, 90);
+      }
+      ctx.font = '22px sans-serif';
+      sceneLabel(ctx, '门', 450, 90);
+      sceneLabel(ctx, '三级台阶（无扶手、无提示盲道）', 320, 480);
+      brickRef(ctx, 700, 430);
+      ctx.fillStyle = '#333'; ctx.font = '20px sans-serif';
+      ctx.fillText('示例二 · 门口台阶（合成示意图）', 24, 36);
+    }
+  },
+  tactile: {
+    name: '人行道盲道（被占用、宽度不足）', fac: 'tactile',
+    prefill: { tactile_occupied: 'yes', tactile_width: 240, tactile_hint: 280, tactile_contrast: 'yes' },
+    draw: function (ctx) {
+      ctx.fillStyle = '#d7dde2'; ctx.fillRect(0, 0, 960, 600);
+      ctx.fillStyle = '#424b54'; ctx.fillRect(0, 500, 960, 100);     /* 车行道 */
+      ctx.strokeStyle = '#c9d2d9'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, 500); ctx.lineTo(960, 500); ctx.stroke();
+      ctx.fillStyle = '#f2c518'; ctx.fillRect(380, 0, 120, 500);     /* 盲道（240mm） */
+      ctx.fillStyle = '#c9a20c';
+      for (var y = 14; y < 500; y += 28) {
+        ctx.fillRect(392, y, 96, 8);
+      }
+      ctx.fillStyle = '#8a939b'; ctx.fillRect(330, 180, 220, 130);   /* 障碍物 */
+      ctx.strokeStyle = '#5f6870'; ctx.lineWidth = 2; ctx.strokeRect(330, 180, 220, 130);
+      ctx.font = '22px sans-serif';
+      sceneLabel(ctx, '占用盲道的障碍物', 350, 250);
+      sceneLabel(ctx, '盲道（宽度不足）', 520, 60);
+      brickRef(ctx, 90, 380);
+      ctx.fillStyle = '#333'; ctx.font = '20px sans-serif';
+      ctx.fillText('示例三 · 人行道盲道（合成示意图）', 24, 36);
+    }
+  }
+};
+
+function loadScene(key) {
+  var sc = SCENES[key];
+  var c = document.createElement('canvas'); c.width = 960; c.height = 600;
+  sc.draw(c.getContext('2d'));
+  setPhoto(c, 960, 600, { keepCalibQuiet: true });
+  selectFacility(sc.fac, true);
+  app.mmPerPx = 2;
+  app.calibLabel = '示例场景内置比例（1 px = 2 mm）';
+  app.calibPx = 0;
+  setCalStatus('ok', '已标定：1 px ≈ 2.000 mm（参照：' + app.calibLabel + '）');
+  Object.keys(sc.prefill).forEach(function (id) {
+    var item = findItem(id);
+    if (item) setItemValue(sc.fac, item, sc.prefill[id], 'prefill', false);
+  });
+  say('已加载示例「' + sc.name + '」：已自动完成标定并预填实测值，可直接查看判定结果，也可点「在图上量」自己动手。');
+}
+qsa('[data-scene]').forEach(function (chip) {
+  chip.addEventListener('click', function () { loadScene(chip.getAttribute('data-scene')); });
+});
+
+/* ============================================================
+   10. 问题 → 方案闭环（板块二）
+   ============================================================ */
+function demote(p) { return p === 'high' ? 'mid' : p === 'mid' ? 'low' : 'low'; }
+function deviationText(item, v) {
+  var r = item.rule;
+  if (r.type === 'presence') return r.expect ? '现状：无（缺失）。' : '现状：存在占用/设置。';
+  var num = parseFloat(v);
+  if (r.type === 'min') {
+    var d = r.value - num;
+    return '低于限值约 ' + round1(d) + (item.kind === 'slope' ? '' : ' mm') +
+      '（' + Math.round(d / r.value * 100) + '%）。';
+  }
+  if (r.type === 'max') {
+    var d2 = num - r.value;
+    return '超出限值约 ' + round1(d2) + ' mm' +
+      (r.value > 0 ? '（' + Math.round(d2 / r.value * 100) + '%）' : '') + '。';
+  }
+  if (num < r.min) return '低于范围下限约 ' + round1(r.min - num) + ' mm。';
+  return '超出范围上限约 ' + round1(num - r.max) + ' mm。';
+}
+
+function buildIssues() {
+  app.issues = [];
+  forEachResult(function (fac, item, r) {
+    if (r.verdict !== 'fail' && r.verdict !== 'border') return;
+    app.issues.push({
+      facKey: Object.keys(STANDARDS).filter(function (k) { return STANDARDS[k] === fac; })[0],
+      facName: fac.name, item: item,
+      value: r.value, verdict: r.verdict,
+      priority: r.verdict === 'fail' ? item.priority : demote(item.priority),
+      fix: item.fix, qty: 1, price: item.cost.price
+    });
+  });
+}
+
+function issueCost(is) { return (is.qty || 0) * (is.price || 0); }
+
+function renderIssues() {
+  issueList.innerHTML = '';
+  markerLayer.innerHTML = '';
+  if (!app.issues.length) {
+    issueList.innerHTML = '<p class="scheme-empty">本次检查没有发现不合格或临界项。</p>';
+    schemeDetail.innerHTML = '<p class="scheme-empty">没有需要改造的问题。</p>';
+    return;
+  }
+  var anchorCount = {};
+  app.issues.forEach(function (is, i) {
+    var btn = document.createElement('button');
+    btn.className = 'issue-item'; btn.type = 'button';
+    btn.setAttribute('role', 'listitem');
+    btn.setAttribute('aria-pressed', 'false');
+    btn.innerHTML =
+      '<span class="issue-item__no" aria-hidden="true">' + (i + 1) + '</span>' +
+      '<span class="issue-item__name">' + escapeHtml(is.facName + ' · ' + is.item.label) + '</span>' +
+      '<span class="tag ' + PRIORITY_TAG[is.priority] + '">' + PRIORITY_TEXT[is.priority] + '</span>' +
+      '<span class="verdict ' + VERDICT_CLASS[is.verdict] + '">' + VERDICT_TEXT[is.verdict] + '</span>' +
+      '<span class="issue-item__actual">实测 ' + escapeHtml(fmtVal(is.item, is.value)) +
+      '；要求：' + escapeHtml(is.item.req) + '</span>';
+    btn.addEventListener('click', function () { selectIssue(i); });
+    issueList.appendChild(btn);
+
+    /* SVG 编号点 */
+    var base = ANCHORS[is.facKey] || [480, 210];
+    var k = anchorCount[is.facKey] || 0; anchorCount[is.facKey] = k + 1;
+    var cx = base[0] + (k % 3) * 36, cy = base[1] + Math.floor(k / 3) * 32;
+    var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'map-marker');
+    g.setAttribute('role', 'button');
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('aria-pressed', 'false');
+    g.setAttribute('aria-label', '问题点 ' + (i + 1) + '：' + is.facName + is.item.label);
+    var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', 14);
+    var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', cx); text.setAttribute('y', cy + 1); text.textContent = i + 1;
+    g.appendChild(circle); g.appendChild(text);
+    g.addEventListener('click', function () { selectIssue(i); });
+    g.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectIssue(i); }
+    });
+    markerLayer.appendChild(g);
+  });
+}
+
+function selectIssue(i) {
+  app.selIssue = i;
+  qsa('.issue-item', issueList).forEach(function (el, j) {
+    el.setAttribute('aria-pressed', j === i ? 'true' : 'false');
+  });
+  qsa('.map-marker', markerLayer).forEach(function (el, j) {
+    el.setAttribute('aria-pressed', j === i ? 'true' : 'false');
+  });
+  renderScheme(app.issues[i], i);
+}
+
+function renderScheme(is, idx) {
+  var c = is.item.cite;
+  schemeDetail.innerHTML =
+    '<div class="scheme-row"><dt>问题位置</dt><dd>' + escapeHtml(is.facName) +
+      ' · 示意图 ' + (idx + 1) + ' 号点（示意位置）</dd></div>' +
+    '<div class="scheme-row"><dt>问题描述</dt><dd>' + escapeHtml(is.item.label) +
+      '：实测 ' + escapeHtml(fmtVal(is.item, is.value)) + '，标准要求：' + escapeHtml(is.item.req) +
+      '。' + escapeHtml(deviationText(is.item, is.value)) + '</dd></div>' +
+    '<div class="scheme-row"><dt>国标依据</dt><dd>' + escapeHtml(c.std) + ' 第 ' + escapeHtml(c.clause) +
+      ' 条（' + escapeHtml(c.page) + '）</dd></div>' +
+    '<div class="scheme-row"><dt>改造方案</dt><dd>' +
+      '<textarea id="fixText" aria-label="改造方案，可编辑">' + escapeHtml(is.fix) + '</textarea></dd></div>' +
+    '<div class="scheme-row"><dt>优先级</dt><dd>' + PRIORITY_TEXT[is.priority] +
+      (is.priority === 'high' ? '（建议立即整改）' : is.priority === 'mid' ? '（建议限期整改）' : '（建议优化）') +
+      '</dd></div>' +
+    '<div class="scheme-row"><dt>预估造价</dt><dd class="cost-row">' +
+      '<label>数量 <input class="input" id="costQty" type="number" min="0" step="0.5" value="' + is.qty + '"></label>' +
+      '<span>' + escapeHtml(is.item.cost.unit) + ' × </span>' +
+      '<label>单价 <input class="input" id="costPrice" type="number" min="0" step="1" value="' + is.price + '"></label>' +
+      '<span>元 ＝ <strong id="costTotal">' + fmtMoney(issueCost(is)) + '</strong></span></dd></div>';
+  $('fixText').addEventListener('input', function () { is.fix = $('fixText').value; });
+  function recalc() {
+    is.qty = parseFloat($('costQty').value) || 0;
+    is.price = parseFloat($('costPrice').value) || 0;
+    $('costTotal').textContent = fmtMoney(issueCost(is));
+    updateReportBar();
+  }
+  $('costQty').addEventListener('input', recalc);
+  $('costPrice').addEventListener('input', recalc);
+}
+
+function updateReportBar() {
+  var measured = 0, okCnt = 0;
+  forEachResult(function (fac, item, r) {
+    measured++;
+    if (r.verdict === 'pass' || r.verdict === 'border') okCnt++;
+  });
+  rCompliance.textContent = measured ? Math.round(okCnt / measured * 100) + '%' : '--';
+  rAdopted.textContent = app.issues.length;
+  rPending.textContent = app.issues.filter(function (x) { return x.priority === 'high'; }).length;
+  var total = app.issues.reduce(function (s, x) { return s + issueCost(x); }, 0);
+  rBudget.textContent = fmtMoney(total);
+}
+
+btnToReport.addEventListener('click', function () {
+  buildIssues();
+  if (!app.issues.length) {
+    var any = false;
+    forEachResult(function () { any = true; });
+    if (!any) { say('请先完成至少一项测量，再带入改造建议书。'); return; }
+  }
+  renderIssues();
+  updateReportBar();
+  if (app.issues.length) selectIssue(0);
+  switchTab('report');
+});
+
+/* ============================================================
+   11. 建议书生成与打印
+   ============================================================ */
+function buildReportHtml() {
+  var measured = 0, pass = 0, border = 0, fail = 0;
+  forEachResult(function (fac, item, r) {
+    measured++;
+    if (r.verdict === 'pass') pass++;
+    else if (r.verdict === 'border') border++;
+    else if (r.verdict === 'fail') fail++;
+  });
+  var rate = measured ? Math.round((pass + border) / measured * 100) : 0;
+  var total = app.issues.reduce(function (s, x) { return s + issueCost(x); }, 0);
+  var highIssues = app.issues.filter(function (x) { return x.priority === 'high'; });
+  var today = new Date();
+  var todayStr = today.getFullYear() + ' 年 ' + (today.getMonth() + 1) + ' 月 ' + today.getDate() + ' 日';
+
+  var rows = app.issues.map(function (is, i) {
+    var c = is.item.cite;
+    return '<tr>' +
+      '<td class="num">' + (i + 1) + '</td>' +
+      '<td>' + escapeHtml(is.facName + ' · ' + is.item.label) + '</td>' +
+      '<td>实测 ' + escapeHtml(fmtVal(is.item, is.value)) + '；标准要求：' + escapeHtml(is.item.req) +
+        '。' + escapeHtml(deviationText(is.item, is.value)) + '</td>' +
+      '<td>' + escapeHtml(is.fix) + '</td>' +
+      '<td>' + escapeHtml(c.std) + '<br>第 ' + escapeHtml(c.clause) + ' 条（' + escapeHtml(c.page) + '）</td>' +
+      '<td class="num">' + fmtMoney(issueCost(is)) + '<br>' +
+        '<span class="r-small">' + is.qty + ' ' + escapeHtml(is.item.cost.unit) +
+        ' × ' + is.price + ' 元</span></td>' +
+      '<td>待整改</td>' +
+      '</tr>';
+  }).join('');
+  if (!rows) rows = '<tr><td colspan="7">本次检查未发现不合格项。</td></tr>';
+
+  var priorityHtml = highIssues.length
+    ? '<p><strong>第一阶段（优先实施）：</strong>' +
+      escapeHtml(highIssues.map(function (x) { return x.facName + '·' + x.item.label; }).join('；')) +
+      '。以上 ' + highIssues.length + ' 项直接决定乘轮椅者、视障者能否独立进出与使用本场所，建议立即整改。</p>' +
+      (app.issues.length > highIssues.length
+        ? '<p><strong>第二阶段（限期整改）：</strong>其余 ' + (app.issues.length - highIssues.length) +
+          ' 项为临界或一般问题，建议结合第一阶段施工统筹安排，限期完成。</p>'
+        : '')
+    : '<p>本次无高优先级问题；临界及一般问题建议结合日常维护限期优化。</p>';
+
+  return '' +
+    '<h1>无障碍改造建议书</h1>' +
+    '<p class="report-meta">受检场所：' + escapeHtml(siteName.value || '（未填写）') +
+      '　地址：' + escapeHtml(siteAddr.value || '（未填写）') +
+      '<br>检查范围：' + escapeHtml(siteScope.value || '（未填写）') +
+      '　督导日期：' + escapeHtml(siteDate.value || '（未填写）') +
+      '　督导志愿者：' + escapeHtml(siteVolunteer.value || '（未填写）') +
+      '　出具日期：' + todayStr + '</p>' +
+    '<h2>一、检查依据</h2>' +
+    '<p>1.《建筑与市政工程无障碍通用规范》GB 55019-2021（强制性工程建设规范，2022 年 4 月 1 日起施行）；<br>' +
+      '2.《无障碍设计规范》GB 50763-2012。所引条文均对照标准原文，标注页码可用于核对。</p>' +
+    '<h2>二、总体情况</h2>' +
+    '<p>本次现场检查共测量 ' + measured + ' 项：合格 ' + pass + ' 项，临界合格 ' + border +
+      ' 项，不合格 ' + fail + ' 项，现场合规率 ' + rate + '%。' +
+      '发现问题点 ' + app.issues.length + ' 个（其中高优先级 ' + highIssues.length +
+      ' 个），全部列入本次改造；预估改造预算合计 <strong>' + fmtMoney(total) + '</strong>。' +
+      '临界合格项已按接近限值纳入整改建议。</p>' +
+    '<h2>三、问题与改造方案明细</h2>' +
+    '<table class="report-table"><thead><tr>' +
+      '<th>序号</th><th>问题</th><th>现状描述</th><th>改造做法</th><th>规范依据</th>' +
+      '<th>预估造价</th><th>状态</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<p class="r-small">注：造价为参考估算，实际以现场勘察与市场报价为准。</p>' +
+    '<h2>四、优先实施建议</h2>' + priorityHtml +
+    '<h2>五、后续维护</h2>' +
+    '<p>1. 盲道、无障碍通道与轮椅通道不得被占用，不堆物、不停车；<br>' +
+      '2. 无障碍标识保持连续、清晰、不被遮挡；<br>' +
+      '3. 扶手、坡道、标识等设施损坏后及时修复，并纳入日常巡查。</p>' +
+    '<h2>六、签字确认</h2>' +
+    '<div class="signatures">' +
+      '<p>督导志愿者（签字）：________________</p>' +
+      '<p>场所负责人（签字）：________________</p>' +
+      '<p>日期：______年____月____日</p></div>';
+}
+
+btnGenerate.addEventListener('click', function () {
+  buildIssues();
+  renderIssues(); updateReportBar();
+  var any = false;
+  forEachResult(function () { any = true; });
+  if (!any) { switchTab('diagnose'); say('还没有任何测量数据。请先完成至少一项测量，再生成建议书。'); return; }
+  reportEl.innerHTML = buildReportHtml();
+  window.print();
+});
+
+btnReset.addEventListener('click', function () {
+  app.results = {}; app.issues = []; app.selIssue = -1;
+  app.lines = app.lines.filter(function (l) { return l.calib; });
+  cancelDraw(); redrawOverlay();
+  if (app.facility) buildMeasureList(app.facility);
+  updateMeasureCounter(); updateDiagBar();
+  issueList.innerHTML = '<p class="scheme-empty">还没有问题项。请先在「现场拍照诊断」完成测量，再点底部「把诊断结果带入改造建议书」。</p>';
+  schemeDetail.innerHTML = '<p class="scheme-empty">选中左侧一个问题后，这里显示改造做法、条款依据与造价估算。</p>';
+  markerLayer.innerHTML = '';
+  updateReportBar();
+  say('已重置全部测量与方案数据（照片与标定保留）。');
+});
+
+qsa('[data-site]').forEach(function (chip) {
+  chip.addEventListener('click', function () {
+    siteName.value = chip.getAttribute('data-site');
+    siteName.focus();
+  });
+});
+
+/* ============================================================
+   12. 选项卡 / 主题 / 初始化（a11y）
+   ============================================================ */
+var tabs = [$('tabDiagnose'), $('tabReport')];
+function switchTab(which) {
+  var isDiag = which === 'diagnose';
+  tabs[0].setAttribute('aria-selected', isDiag ? 'true' : 'false');
+  tabs[1].setAttribute('aria-selected', isDiag ? 'false' : 'true');
+  tabs[0].tabIndex = isDiag ? 0 : -1;
+  tabs[1].tabIndex = isDiag ? -1 : 0;
+  $('panelDiagnose').hidden = !isDiag;
+  $('panelReport').hidden = isDiag;
+  $('barDiagnose').hidden = !isDiag;
+  $('barReport').hidden = isDiag;
+}
+tabs.forEach(function (tab, i) {
+  tab.addEventListener('click', function () { switchTab(i === 0 ? 'diagnose' : 'report'); });
+  tab.addEventListener('keydown', function (e) {
+    var ni = null;
+    if (e.key === 'ArrowRight') ni = (i + 1) % 2;
+    else if (e.key === 'ArrowLeft') ni = (i + 1) % 2;
+    else if (e.key === 'Home') ni = 0;
+    else if (e.key === 'End') ni = 1;
+    if (ni !== null) {
+      e.preventDefault();
+      switchTab(ni === 0 ? 'diagnose' : 'report');
+      tabs[ni].focus();
+    }
+  });
+});
+
+$('themeToggle').addEventListener('click', function () {
+  var root = document.documentElement;
+  var cur = root.getAttribute('data-theme');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  try { localStorage.setItem('ypjc-theme', next); } catch (e) {}
+});
+try {
+  var savedTheme = localStorage.getItem('ypjc-theme');
+  if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+} catch (e) {}
+
+/* 初始化 */
+(function init() {
+  try { siteDate.valueAsDate = new Date(); } catch (e) {}
+  updateDiagBar(); updateReportBar();
+})();
+
+})();
+</script>
+
+</body>
+</html>
